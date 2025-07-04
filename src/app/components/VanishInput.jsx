@@ -2,23 +2,32 @@
 import { useState, useRef, useLayoutEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-export default function VanishInput() {
+export default function VanishInput({
+  placeholder = "What do you need?",
+  icon = "🔍",
+  minWidth = 100, // <- ✅ nuevo
+  onSubmit = () => {}
+}) {
   const [value, setValue] = useState("")
   const [vanishing, setVanishing] = useState(false)
   const [letters, setLetters] = useState([])
-  const [inputWidth, setInputWidth] = useState(200)
+  const [inputWidth, setInputWidth] = useState(minWidth)
 
   const inputRef = useRef(null)
   const measureRef = useRef(null)
+  const placeholderRef = useRef(null)
 
   useLayoutEffect(() => {
-    const measured = measureRef.current?.offsetWidth || 0
+    const baseEl = value ? measureRef.current : placeholderRef.current
+    const measured = baseEl?.offsetWidth || 0
     const iconWidth = 24
     const paddingX = 16 + 16
     const buffer = 4
-    const totalWidth = Math.max(200, measured + iconWidth + paddingX + buffer)
+    const totalWidth = Math.max(minWidth, measured + iconWidth + paddingX + buffer)
+
     setInputWidth(totalWidth)
-  }, [value])
+  }, [value, placeholder, minWidth])
+
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && value.trim()) {
@@ -29,6 +38,7 @@ export default function VanishInput() {
         index: i,
       }))
       setLetters(chars)
+      onSubmit(value.trim())
       setValue("")
       setVanishing(true)
 
@@ -41,7 +51,7 @@ export default function VanishInput() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[300px] relative font-sans">
-      {/* Medidor oculto */}
+      {/* Medidor oculto para texto ingresado */}
       <span
         ref={measureRef}
         className="invisible absolute whitespace-pre text-base"
@@ -51,17 +61,43 @@ export default function VanishInput() {
           lineHeight: '1.5rem',
           padding: 0,
           margin: 0,
-          whiteSpace: 'pre',
         }}
       >
-        {value || ''}
+        {value}
+      </span>
+
+      {/* Medidor oculto para placeholder */}
+      <span
+        ref={placeholderRef}
+        className="invisible absolute whitespace-pre text-base"
+        style={{
+          fontFamily: 'inherit',
+          fontSize: '1rem',
+          lineHeight: '1.5rem',
+          padding: 0,
+          margin: 0,
+        }}
+      >
+        {placeholder}
       </span>
 
       <div
-        className="relative z-10 bg-black text-white px-3 py-2 rounded-lg border border-neutral-800 shadow-lg overflow-hidden transition-all duration-300 flex items-center"
-        style={{ width: `${inputWidth}px` }}
+        className="relative z-10 bg-black text-white px-3 py-2 rounded-lg border border-neutral-800 shadow-lg overflow-hidden flex items-center"
+        style={{
+          width: `${inputWidth}px`,
+          transition: 'width 0.3s ease-in-out'
+        }}
       >
-        <span className="text-neutral-500 w-4 shrink-0">🔍</span>
+        <span className="text-neutral-500 w-4 shrink-0">{icon}</span>
+
+        {value === "" && !vanishing && (
+          <div
+            key={placeholder}
+            className="absolute left-[48px] text-neutral-500 text-base select-none pointer-events-none"
+          >
+            {placeholder}
+          </div>
+        )}
 
         <div
           ref={inputRef}
@@ -69,12 +105,7 @@ export default function VanishInput() {
           suppressContentEditableWarning
           onInput={(e) => setValue(e.currentTarget.textContent)}
           onKeyDown={handleKeyDown}
-          className={`
-            bg-transparent outline-none placeholder-neutral-500 pl-4
-            w-full whitespace-nowrap overflow-hidden
-            transition-all duration-300
-            ${vanishing ? 'text-transparent caret-white' : 'text-white'}
-          `}
+          className={`bg-transparent outline-none pl-4 w-full whitespace-nowrap overflow-hidden transition-all duration-300 ${vanishing ? 'text-transparent caret-white' : 'text-white'}`}
           style={{
             fontFamily: 'inherit',
             fontSize: '1rem',
