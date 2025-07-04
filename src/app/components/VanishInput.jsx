@@ -12,7 +12,6 @@ export default function VanishInput({
   const [vanishing, setVanishing] = useState(false)
   const [letters, setLetters] = useState([])
   const [inputWidth, setInputWidth] = useState(minWidth)
-
   const inputRef = useRef(null)
   const measureRef = useRef(null)
   const placeholderRef = useRef(null)
@@ -89,9 +88,13 @@ export default function VanishInput({
         range.collapse(true);
         sel.removeAllRanges();
         sel.addRange(range);
+
         }, 800); // igual duración que la animación del caret falso
     }
   };
+
+useLayoutEffect(() => {
+}, []);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[300px] relative font-sans">
@@ -165,15 +168,23 @@ export default function VanishInput({
             }}
         >
             <span className="text-neutral-500 w-4 shrink-0">{icon}</span>
-
+            <AnimatePresence>
             {value === "" && !vanishing && (
-            <div
-                key={placeholder}
+                <motion.div
+                key="placeholder"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ opacity: { duration: 0.4 } }}
                 className="absolute left-[48px] text-neutral-500 text-base select-none pointer-events-none"
-            >
+                >
                 {placeholder}
-            </div>
+                </motion.div>
             )}
+            </AnimatePresence>
+
+
+
 
             <div
             ref={inputRef}
@@ -183,16 +194,19 @@ export default function VanishInput({
 
             suppressContentEditableWarning
             onInput={(e) => {
-            // Siempre evitamos que haya salto de línea
-            const raw = e.currentTarget.innerText;
+            const raw = e.currentTarget.textContent;
+
             const cleaned = raw.replace(/\n/g, '').trim();
             setValue(cleaned);
 
-            // Si está vacío, eliminamos también todos los nodos dentro del contentEditable
             if (cleaned === "") {
-                e.currentTarget.innerHTML = ""; // ← ¡Esto borra el \n fantasma!
+            e.currentTarget.innerHTML = "";
             }
+
             }}
+
+
+
 
             onKeyDown={handleKeyDown}
             className={`relative bg-transparent outline-none pl-4 w-full whitespace-nowrap overflow-hidden transition-all duration-300 z-10 ${(vanishing || showFakeCaret || !hasFocus) ? 'text-transparent caret-transparent' : 'text-white caret-transparent custom-caret'
