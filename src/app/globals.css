@@ -25,3 +25,18 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+@keyframes blink-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.custom-caret::after {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 1.25rem;
+  background-color: white;
+  animation: blink-slow 1.2s infinite; /* más lento */
+  vertical-align: middle;
+  margin-left: 2px;
+}

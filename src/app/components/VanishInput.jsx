@@ -17,6 +17,8 @@ export default function VanishInput({
   const measureRef = useRef(null)
   const placeholderRef = useRef(null)
 
+  const [showFakeCaret, setShowFakeCaret] = useState(false)
+
   useLayoutEffect(() => {
     const baseEl = value ? measureRef.current : placeholderRef.current
     const measured = baseEl?.offsetWidth || 0
@@ -32,24 +34,44 @@ export default function VanishInput({
 const handleKeyDown = (e) => {
   if (e.key === 'Enter' && value.trim()) {
     e.preventDefault();
+
     const trimmed = value.trim();
     const chars = trimmed.split('').map((char, i) => ({
       id: `${char}-${i}-${Date.now()}`,
       char,
       index: i,
     }));
-    setLetters(chars);
-    onSubmit(trimmed);
-    setValue("");
-    inputRef.current.textContent = ""; // ← ⚠️ BORRA VISUALMENTE
+
+    // 1. Ocultamos el caret real
+    inputRef.current.blur();
+    setShowFakeCaret(true);
     setVanishing(true);
 
+    // 2. Disparamos animación
+    setLetters(chars);
+    onSubmit(trimmed);
+
+    // 3. Limpiamos y restauramos caret luego de la animación
     setTimeout(() => {
-      setVanishing(false);
+      setValue("");
+      inputRef.current.textContent = "";
+
       setLetters([]);
-    }, 1000);
+      setVanishing(false);
+      setShowFakeCaret(false);
+
+      inputRef.current.focus();
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.setStart(inputRef.current, 0);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }, 800); // igual duración que la animación del caret falso
   }
 };
+
+
 
 
   return (
@@ -103,17 +125,31 @@ const handleKeyDown = (e) => {
         )}
 
         <div
-          ref={inputRef}
-          contentEditable
-          suppressContentEditableWarning
-          onInput={(e) => setValue(e.currentTarget.textContent)}
-          onKeyDown={handleKeyDown}
-          className={`bg-transparent outline-none pl-4 w-full whitespace-nowrap overflow-hidden transition-all duration-300 ${vanishing ? 'text-transparent caret-white' : 'text-white'}`}
-          style={{
+        ref={inputRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={(e) => setValue(e.currentTarget.textContent)}
+        onKeyDown={handleKeyDown}
+        className={`relative bg-transparent outline-none pl-4 w-full whitespace-nowrap overflow-hidden transition-all duration-300 ${
+            (vanishing || showFakeCaret) ? 'text-transparent caret-transparent' : 'text-white caret-transparent custom-caret'
+        }`}
+        style={{
             fontFamily: 'inherit',
             fontSize: '1rem',
-          }}
+        }}
         />
+
+
+        {showFakeCaret && (
+        <motion.div
+            initial={{ x: 0 }}
+            animate={{ x: -inputWidth + 64 }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
+            className="absolute top-1/2 -translate-y-1/2 w-[1px] h-5 bg-white"
+            style={{ left: `calc(100% - 20px)` }}
+        />
+        )}
+
 
         {vanishing && (
           <div className="absolute left-[38px] top-1/2 -translate-y-1/2 flex pointer-events-none">
