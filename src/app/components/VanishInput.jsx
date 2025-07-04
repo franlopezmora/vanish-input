@@ -206,7 +206,7 @@ export default function VanishInput({
             {showFakeCaret && (
             <motion.div
                 initial={{ x: caretOffset -1 }}
-                animate={{ x: 0 }}
+                animate={{ x: -2 }}
                 transition={{ duration: 0.6, ease: "easeInOut" }}
                 className="absolute top-1/2 -translate-y-1/2 w-[2px] h-[1.25rem] bg-white"
                 style={{ left: `${baseLeft}px` }}
