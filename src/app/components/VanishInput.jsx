@@ -29,25 +29,28 @@ export default function VanishInput({
   }, [value, placeholder, minWidth])
 
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && value.trim()) {
-      e.preventDefault()
-      const chars = value.split('').map((char, i) => ({
-        id: `${char}-${i}-${Date.now()}`,
-        char,
-        index: i,
-      }))
-      setLetters(chars)
-      onSubmit(value.trim())
-      setValue("")
-      setVanishing(true)
+const handleKeyDown = (e) => {
+  if (e.key === 'Enter' && value.trim()) {
+    e.preventDefault();
+    const trimmed = value.trim();
+    const chars = trimmed.split('').map((char, i) => ({
+      id: `${char}-${i}-${Date.now()}`,
+      char,
+      index: i,
+    }));
+    setLetters(chars);
+    onSubmit(trimmed);
+    setValue("");
+    inputRef.current.textContent = ""; // ← ⚠️ BORRA VISUALMENTE
+    setVanishing(true);
 
-      setTimeout(() => {
-        setVanishing(false)
-        setLetters([])
-      }, 1000)
-    }
+    setTimeout(() => {
+      setVanishing(false);
+      setLetters([]);
+    }, 1000);
   }
+};
+
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[300px] relative font-sans">
