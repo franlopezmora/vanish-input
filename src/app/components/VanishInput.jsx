@@ -16,6 +16,25 @@ export default function VanishInput({
   const inputRef = useRef(null)
   const measureRef = useRef(null)
   const placeholderRef = useRef(null)
+  const spansRef = useRef([]);
+  const iconSize = 24;
+    const padding = 24;
+    const baseLeft = iconSize + padding;
+
+
+  const [caretOffset, setCaretOffset] = useState(0);
+
+useLayoutEffect(() => {
+  const last = spansRef.current[value.length - 1];
+  if (last) {
+    const offset = last.offsetLeft + last.offsetWidth;
+    setCaretOffset(offset);
+  } else {
+    setCaretOffset(0);
+  }
+}, [value]);
+
+  
 
   const [showFakeCaret, setShowFakeCaret] = useState(false)
 
@@ -36,11 +55,18 @@ const handleKeyDown = (e) => {
     e.preventDefault();
 
     const trimmed = value.trim();
-    const chars = trimmed.split('').map((char, i) => ({
-      id: `${char}-${i}-${Date.now()}`,
-      char,
-      index: i,
-    }));
+    const chars = trimmed.split('').map((char, i) => {
+    const span = spansRef.current[i];
+    const offset = span?.offsetLeft || i * 16;
+    const top = span?.offsetTop || 0;
+    return {
+        id: `${char}-${i}-${Date.now()}`,
+        char,
+        offset,
+        top
+    };
+    });
+
 
     // 1. Ocultamos el caret real
     inputRef.current.blur();
@@ -91,6 +117,37 @@ const handleKeyDown = (e) => {
         {value}
       </span>
 
+      <div
+  className="absolute opacity-0 pointer-events-none whitespace-pre"
+  style={{
+    top: 0,
+    left: 0,
+    fontFamily: 'inherit',
+    fontSize: '1rem',
+    lineHeight: '1.5rem'
+  }}
+  ref={el => (spansRef.currentWrapper = el)}
+>
+
+  {value.split('').map((char, i) => (
+    <span
+      key={i}
+      ref={el => spansRef.current[i] = el}
+      className="inline-block text-base"
+      style={{
+        fontFamily: 'inherit',
+        fontSize: '1rem',
+        lineHeight: '1.5rem',
+        margin: 0,
+        padding: 0
+      }}
+    >
+      {char}
+    </span>
+  ))}
+</div>
+
+
       {/* Medidor oculto para placeholder */}
       <span
         ref={placeholderRef}
@@ -130,7 +187,7 @@ const handleKeyDown = (e) => {
         suppressContentEditableWarning
         onInput={(e) => setValue(e.currentTarget.textContent)}
         onKeyDown={handleKeyDown}
-        className={`relative bg-transparent outline-none pl-4 w-full whitespace-nowrap overflow-hidden transition-all duration-300 ${
+        className={`relative bg-transparent outline-none pl-4 w-full whitespace-nowrap overflow-hidden transition-all duration-300 z-10 ${
             (vanishing || showFakeCaret) ? 'text-transparent caret-transparent' : 'text-white caret-transparent custom-caret'
         }`}
         style={{
@@ -141,44 +198,61 @@ const handleKeyDown = (e) => {
 
 
         {showFakeCaret && (
-        <motion.div
-            initial={{ x: 0 }}
-            animate={{ x: -inputWidth + 64 }}
-            transition={{ duration: 0.6, ease: "easeInOut" }}
-            className="absolute top-1/2 -translate-y-1/2 w-[1px] h-5 bg-white"
-            style={{ left: `calc(100% - 20px)` }}
-        />
-        )}
+  <motion.div
+    initial={{ x: caretOffset -1 }}
+    animate={{ x: 0 }}
+    transition={{ duration: 0.6, ease: "easeInOut" }}
+    className="absolute top-1/2 -translate-y-1/2 w-[2px] h-[1.25rem] bg-white"
+    style={{ left: `${baseLeft}px` }}
+  />
+)}
 
 
-        {vanishing && (
-          <div className="absolute left-[38px] top-1/2 -translate-y-1/2 flex pointer-events-none">
+
+{vanishing && (
+  <div className="absolute left-[32px] top-0 h-6 flex items-center pointer-events-none whitespace-pre pl-2 relative z-0">
+
+
+
             <AnimatePresence>
-              {letters.map((item, i) => (
-                <motion.span key={item.id} className="relative inline-block w-4 h-6">
-                  {[...Array(5)].map((_, j) => (
+            {letters.map((item, i) => (
+<motion.span
+  key={item.id}
+  className="absolute"
+  style={{
+    left: `${item.offset + 48}px`, // icon + padding
+    top: `0px`,
+    height: '1.5rem'
+  }}
+>
+
+
+                {[...Array(20)].map((_, j) => (
                     <motion.div
-                      key={j}
-                      initial={{ x: 0, y: 0, opacity: 0.8, scale: 1 }}
-                      animate={{
-                        x: -10 - Math.random() * 10,
-                        y: (Math.random() - 0.5) * 6,
+                    key={j}
+                    initial={{ x: -150, y: 20, opacity: 1, scale: 1 }}
+                    animate={{
+                        x: -200 - Math.random() * 20,
+                        y: 20 + (Math.random() - 0.5) * 10,
                         opacity: 0,
                         scale: 1 + Math.random() * 0.5,
-                      }}
-                      transition={{
-                        duration: 0.8,
-                        delay: i * 0.015 + j * 0.02,
+                    }}
+                    transition={{
+                        duration: 1.2,
+                        delay: i * 0.01 + j * 0.015,
                         ease: 'easeOut',
-                      }}
-                      className="absolute w-[2px] h-[2px] rounded-full bg-white blur-[1px]"
+                    }}
+                    className="absolute w-[2.5px] h-[2.5px] rounded-full bg-white blur-[1px]"
+
                     />
-                  ))}
+                ))}
                 </motion.span>
-              ))}
+            ))}
             </AnimatePresence>
-          </div>
+        </div>
         )}
+
+
       </div>
 
       <p className="mt-4 text-neutral-500 text-sm z-10">Type and press Enter</p>
