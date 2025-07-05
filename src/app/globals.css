@@ -40,3 +40,8 @@ body {
   vertical-align: middle;
   margin-left: 2px;
 }
+
+
+[contenteditable]:focus {
+  caret-color: transparent;
+}
