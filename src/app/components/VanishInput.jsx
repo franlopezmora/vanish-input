@@ -116,11 +116,15 @@ useLayoutEffect(() => {
         top: 0
       }));
 
+      const shouldAnimateCaret = caretOffset !== 0;
 
-      inputRef.current.blur();
-      setShowFakeCaret(true);
+      if (shouldAnimateCaret) setShowFakeCaret(true);
       setVanishing(true);
-      if (inputRef.current) inputRef.current.textContent = '';
+
+      if (inputRef.current) {
+        inputRef.current.textContent = '';
+        inputRef.current.focus();
+      }
 
       setLetters(chars);
       onSubmit(trimmed);
@@ -128,25 +132,37 @@ useLayoutEffect(() => {
       const maxDelay = (chars.length - 1) * 0.03 + 0.04 + 40 * 0.003 + 0.05;
       setFakeCaretDuration(maxDelay * 1000);
 
-      setTimeout(() => {
-        setValue('');
-        setLetters([]);
-        setVanishing(false);
-        setShowFakeCaret(false);
+setTimeout(() => {
+  setValue('');
+  setLetters([]);
+  setShowFakeCaret(false);
 
-        if (inputRef.current) {
-          if (!inputRef.current.childNodes.length) {
-            inputRef.current.appendChild(document.createTextNode(''));
-          }
-          inputRef.current.focus();
-          const selection = window.getSelection();
-          const range = document.createRange();
-          range.selectNodeContents(inputRef.current);
-          range.collapse(false);
-          selection.removeAllRanges();
-          selection.addRange(range);
+  // Esperar a que `vanishing` se apague visualmente
+  requestAnimationFrame(() => {
+    setVanishing(false);
+
+    requestAnimationFrame(() => {
+      if (inputRef.current) {
+        // aseguramos que tenga un nodo de texto
+        if (!inputRef.current.childNodes.length) {
+          inputRef.current.appendChild(document.createTextNode(''));
         }
-      }, maxDelay * 1000 - 2);
+
+        inputRef.current.focus();
+
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.setStart(inputRef.current.firstChild, 0);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        updateCaretOffset();
+      }
+    });
+  });
+}, maxDelay * 1000 - 2);
+
     }
   };
 
@@ -161,7 +177,7 @@ useLayoutEffect(() => {
         <span className="text-neutral-500 w-4 shrink-0">{icon}</span>
         <AnimatePresence>
           {value === "" && !vanishing && (
-            <motion.div key="placeholder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute left-[48px] text-neutral-500">{placeholder}</motion.div>
+            <motion.div key="placeholder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute left-[48px] text-neutral-500" style={{ left: `${baseLeft - 4}px` }}>{placeholder}</motion.div>
           )}
         </AnimatePresence>
 
@@ -187,6 +203,25 @@ useLayoutEffect(() => {
                 handleKeyDown(e);
                 setTimeout(updateCaretOffset, 0); // luego del movimiento
               }}
+              onClick={(e) => {
+                if (!value.trim()) {
+                  e.preventDefault();
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  const node = inputRef.current.firstChild;
+                  if (node) {
+                    range.setStart(node, 0);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    requestAnimationFrame(() => updateCaretOffset());
+                  }
+                } else {
+                  requestAnimationFrame(() => updateCaretOffset());
+                }
+              }}
+
+
             />
           ) : (
             <div className="flex">
@@ -213,7 +248,7 @@ useLayoutEffect(() => {
           <div
             className="absolute bg-white w-[2px] h-[1.25rem] animate-pulse"
             style={{
-              left: `${caretOffset + baseLeft}px`,
+              left: `${(value ? caretOffset : -4) + baseLeft}px`,
               top: '50%',
               transform: 'translateY(-50%)',
               zIndex: 50,
@@ -222,9 +257,28 @@ useLayoutEffect(() => {
         )}
       </div>
 
+      {showFakeCaret && (
+        <motion.div
+          key="fake-caret"
+          initial={{ x: caretOffset, y: -31, opacity: 1 }}
+          animate={{ x: -5, y: -31, opacity: 1 }}
+          transition={{ duration: fakeCaretDuration / 1000, ease: "easeInOut" }}
+
+          className="absolute custom-caret"
+          style={{
+            left: `${baseLeft}px`,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 9999, // por encima de todo
+          }}
+        />
+      )}
+
+
+
       {/* Partículas */}
       {vanishing && (
-        <div className="absolute left-[32px] top-0 flex items-center pointer-events-none whitespace-pre pl-2" style={{ height: '2rem', zIndex: 50 }}>
+        <div className="absolute left-[32px] flex items-center pointer-events-none whitespace-pre pl-2" style={{ top: '44%', transform: 'translateY(-50%)', height: '2rem', zIndex: 50 }}>
           <AnimatePresence>
             {letters.map((item, i) => (
               <motion.span key={item.id} className="absolute" style={{ left: `${item.offset + baseLeft}px`, top: `${item.top}px` }}>
