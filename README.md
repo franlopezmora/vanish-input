@@ -43,6 +43,6 @@ npm run dev
 ```
 
 ## 💡 Créditos
-
+ 
 Inspirado por el increíble trabajo de [Rauno Freiberg](https://rauno.me/craft/vanish-input).  
 Recreado y adaptado como proyecto creativo personal.
