@@ -12,6 +12,16 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Oculta el logo flotante de errores de Next.js */
+#__nextjs-error-overlay {
+  display: none !important;
+}
+
+.nextjs-toast-errors {
+  display: none !important;
+}
+
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
